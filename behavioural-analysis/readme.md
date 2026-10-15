@@ -1,9 +1,13 @@
 # Behavioural analysis
 
-These Python workflows are organized by processing type. No script contains
-a user-specific filesystem path. Input files and output folders are supplied
-on the command line, or the script uses the current working folder as
-described below.
+Reusable code is kept in `functions/`, while figure-specific entry points are
+kept under `workflows/<figure-id>/`. No script contains a user-specific
+filesystem path. Input files and output folders are supplied on the command
+line, or the script uses the current working folder as described below.
+
+The older `data-plotting/`, `raster-clouds/` and `return-maps/` folders have
+not yet been assigned to figure-specific workflows and retain their existing
+locations for now.
 
 ## Setup
 
@@ -17,19 +21,50 @@ Paths containing spaces should be enclosed in quotation marks.
 
 ## MED-PC data extraction
 
-Extract every `.txt` file in a folder. Outputs are written beside the input
-files unless `--output-folder` is supplied.
+### Figure 1b-c (NRR001)
+
+The Fig. 1 extractor reads all numbered session folders recursively and writes
+two linked CSV files: one row per session in `fig1bc_sessions.csv`, and one row
+per timestamped event in `fig1bc_events.csv`. It accepts either the Fig. 1
+`behaviour` folder or its `01_raw-MEDPC-files` child. By default, the files are
+written to the adjacent `02_extracted-data` folder.
 
 ```bash
-python data-extraction/extract_medpc.py "/path/to/medpc-files"
-python data-extraction/extract_medpc.py "/path/to/medpc-files" --output-folder "/path/to/outputs"
+python workflows/fig1bc/extract_fig1bc.py "/path/to/fig1/behaviour"
+python workflows/fig1bc/extract_fig1bc.py "/path/to/fig1/behaviour" --output-folder "/path/to/outputs"
 ```
 
-## Summary-data plots
+This workflow uses the NRR001 event assignments: `1` is a lever response, `3`
+is pellet delivery and `4` is a time-controlled magazine entry. The shared
+parser in `functions/medpc_parser.py` can be reused by future
+experiment-specific extraction wrappers.
 
-Both scripts expect an Excel workbook containing the `press-rate`, `mag-rate`,
-and `session-time` sheets used by the original analysis. SVG files are written
-beside the workbook unless `--output-folder` is supplied.
+### Figure 1b plot
+
+The Fig. 1b wrapper reads `fig1bc_sessions.csv`, plots individual press-rate
+traces and the pooled daily mean ± SEM, and recreates the group-duration bars
+shown beneath the panel. It also exports the exact subject-level plot values,
+daily summary, and subject-inclusion table. By default, outputs are written to
+`03_analysis-output/fig1b/` beside the extracted-data folder.
+
+```bash
+python workflows/fig1bc/plot_fig1b.py "/path/to/fig1/behaviour" --annotate-significance
+python workflows/fig1bc/plot_fig1b.py "/path/to/fig1/behaviour" --output-folder "/path/to/outputs"
+```
+
+The submitted Fig. 1b source-data table contains the five trained groups
+(`CRF`, `RR5`, `RR10`, `RR20`, and `aRR20`) and does not contain subject
+`4_10138`. The wrapper makes this exclusion explicit in
+`fig1b_subject_selection.csv`. Use `--include-all-subjects` to inspect the
+unfiltered extracted cohort. `--annotate-significance` reproduces the displayed
+asterisk but does not rerun the inferential analysis.
+
+## Legacy summary-data plots
+
+These scripts belong to a separate BiPAC/control experiment and are not used
+for Fig. 1b. Both expect an Excel workbook containing the `press-rate`,
+`mag-rate`, and `session-time` sheets used by that analysis. SVG files are
+written beside the workbook unless `--output-folder` is supplied.
 
 ```bash
 python data-plotting/plot_summary-data.py "/path/to/summary-data.xlsx"
@@ -44,16 +79,6 @@ Place the MED-PC `.txt` files and `choice_mapping.csv` beside
 ```bash
 python raster-clouds/choice_raster_clouds.py --devalued old
 python raster-clouds/choice_raster_clouds.py --devalued new
-```
-
-## Spatial ratio maps
-
-Supply the folder containing paired `*_taSPNs_gfp.txt` and `*_STR.txt` files.
-Outputs default to a `plots` folder inside the data folder.
-
-```bash
-python ratio-maps/mspatial_mesh_logratio_analysis.py "/path/to/ratio-map-data"
-python ratio-maps/mspatial_mesh_logratio_analysis.py "/path/to/ratio-map-data" --output-folder "/path/to/plots"
 ```
 
 ## Return maps
